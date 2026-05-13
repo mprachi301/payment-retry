@@ -8,6 +8,7 @@ package main
 // 	"github.com/mprachi301/payment-retry/config"
 // 	"github.com/mprachi301/payment-retry/internal/models"
 // 	"github.com/mprachi301/payment-retry/internal/repository"
+// 	"github.com/mprachi301/payment-retry/internal/service"
 
 // 	"gorm.io/driver/postgres"
 // 	"gorm.io/gorm"
@@ -91,4 +92,16 @@ package main
 // 	fmt.Println("After UpdateStatus — status:", updated.Status)
 
 // 	fmt.Println("--- All tests passed ---")
+
+// 	fmt.Println("--- Testing MockPaymentProcessor ---")
+// 	processor := service.NewMockPaymentProcessor(0.9)
+
+// 	for i := 0; i < 5; i++ {
+// 		err := processor.ProcessPayment(*fetchedJob)
+// 		if err != nil {
+// 			fmt.Printf("Payment attempt %d failed: %s\n", i+1, err)
+// 		} else {
+// 			fmt.Printf("Payment attempt %d succeeded\n", i+1)
+// 		}
+// 	}
 // }

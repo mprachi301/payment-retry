@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +15,10 @@ type JobRepository interface {
 	Create(job *models.RetryJob) error
 	GetById(id uuid.UUID) (*models.RetryJob, error)
 	ClaimPendingJobs(limit int) ([]models.RetryJob, error)
-	UpdateStatus(id uuid.UUID, status models.JobStatus) error
+	//UpdateStatus(id uuid.UUID, status models.JobStatus) error
 	IncrementRetry(id uuid.UUID, lastError string, nextRetryAt time.Time) error
+	MarkSucceeded(id uuid.UUID) error
+	MarkDead(id uuid.UUID, lastError string) error
 }
 
 // this is a struct which does not belong to JobRepository interface
@@ -69,12 +70,12 @@ func (r *postgresJobRepo) ClaimPendingJobs(limit int) ([]models.RetryJob, error)
 	return jobs, err
 }
 
-func (r *postgresJobRepo) UpdateStatus(id uuid.UUID, status models.JobStatus) error {
-	if status != models.StatusSucceeded && status != models.StatusDead {
-		return fmt.Errorf("UpdateStatus only accepts succeeded or dead, got: %s", status)
-	}
-	return r.db.Model(&models.RetryJob{}).Where("id = ?", id).Update("status", status).Error
-}
+// func (r *postgresJobRepo) UpdateStatus(id uuid.UUID, status models.JobStatus) error {
+// 	if status != models.StatusSucceeded && status != models.StatusDead {
+// 		return fmt.Errorf("UpdateStatus only accepts succeeded or dead, got: %s", status)
+// 	}
+// 	return r.db.Model(&models.RetryJob{}).Where("id = ?", id).Update("status", status).Error
+// }
 
 func (r *postgresJobRepo) IncrementRetry(id uuid.UUID, lastError string, nextRetryAt time.Time) error {
 	return r.db.
@@ -86,6 +87,21 @@ func (r *postgresJobRepo) IncrementRetry(id uuid.UUID, lastError string, nextRet
 			"next_retry_at": nextRetryAt,
 			"status":        models.StatusPending,
 		}).Error
+}
+
+func (r *postgresJobRepo) MarkSucceeded(id uuid.UUID) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&models.RetryJob{}).Where("id=? and status=?", id, models.StatusProcessing).Update("status", models.StatusSucceeded).Error
+	})
+}
+
+func (r *postgresJobRepo) MarkDead(id uuid.UUID, lastError string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&models.RetryJob{}).Where("id=? and status=?", id, models.StatusProcessing).Updates(map[string]interface{}{
+			"status":     models.StatusDead,
+			"last_error": lastError,
+		}).Error
+	})
 }
 
 // we always use this convention while creating a method:
