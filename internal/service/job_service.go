@@ -39,3 +39,15 @@ func (s *JobService) Create(paymentID string, amount float64, currency string) (
 func (s *JobService) GetJob(id uuid.UUID) (*models.RetryJob, error) {
 	return s.repo.GetById(id)
 }
+
+func (s *JobService) MarkSucceeded(id uuid.UUID) error {
+	return s.repo.MarkSucceeded(id)
+}
+
+func (s *JobService) MarkDead(id uuid.UUID, lastError string) error {
+	return s.repo.MarkDead(id, lastError)
+}
+
+func (s *JobService) IncrementRetry(id uuid.UUID, lastError string, nextRetryAt time.Time) error {
+	return s.repo.IncrementRetry(id, lastError, nextRetryAt)
+}
